@@ -7,7 +7,7 @@ class Settings:
 
     GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
     GITHUB_TOKEN: str = os.environ.get("GITHUB_TOKEN", "")
-    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
     # GitHub API
     GITHUB_API_BASE: str = "https://api.github.com"
