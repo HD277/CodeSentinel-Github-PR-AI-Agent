@@ -276,7 +276,7 @@ async def process_webhook_review(owner: str, repo: str, pr_number: int, pr_url: 
                         commit_sha=commit_sha,
                         comments=[], # No inline comments
                         body=fallback_body,
-                        event=event_type
+                        event="COMMENT"
                     )
                     print(f"Posted fallback summary review comment on {owner}/{repo}#{pr_number}")
                 else:
