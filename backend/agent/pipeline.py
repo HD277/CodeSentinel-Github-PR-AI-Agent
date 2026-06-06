@@ -6,7 +6,7 @@ import uuid
 from backend.models import DiffFile, ReviewResponse, ReviewStats, PRMetadata, Finding
 from backend.agent.llm import call_gemini, get_total_tokens, reset_token_counter
 from backend.agent.prompts import SYSTEM_INSTRUCTION, SUMMARY_PROMPT
-from backend.agent.steps import quality, bugs, security, test_suggestions
+from backend.agent.steps import quality, bugs, security, test_suggestions, critic, changelog
 
 
 def run_review(diff_files: list[DiffFile], pr_metadata: PRMetadata) -> ReviewResponse:
@@ -25,7 +25,7 @@ def run_review(diff_files: list[DiffFile], pr_metadata: PRMetadata) -> ReviewRes
         print(f"         Found {len(quality_findings)} quality issues")
     except Exception as e:
         step_errors.append(f"Quality step failed: {e}")
-        print(f"         ⚠ Quality step failed: {e}")
+        print(f"         [Warning] Quality step failed: {e}")
 
     # bug check
     print("  [2/4] Detecting bugs...")
@@ -35,7 +35,7 @@ def run_review(diff_files: list[DiffFile], pr_metadata: PRMetadata) -> ReviewRes
         print(f"         Found {len(bug_findings)} potential bugs")
     except Exception as e:
         step_errors.append(f"Bug detection failed: {e}")
-        print(f"         ⚠ Bug detection failed: {e}")
+        print(f"         [Warning] Bug detection failed: {e}")
 
     # security scan
     print("  [3/4] Scanning for security issues...")
@@ -45,7 +45,7 @@ def run_review(diff_files: list[DiffFile], pr_metadata: PRMetadata) -> ReviewRes
         print(f"         Found {len(security_findings)} security concerns")
     except Exception as e:
         step_errors.append(f"Security scan failed: {e}")
-        print(f"         ⚠ Security scan failed: {e}")
+        print(f"         [Warning] Security scan failed: {e}")
 
     # missing tests suggestions
     print("  [4/4] Generating test suggestions...")
@@ -55,7 +55,25 @@ def run_review(diff_files: list[DiffFile], pr_metadata: PRMetadata) -> ReviewRes
         print(f"         Found {len(test_findings)} test suggestions")
     except Exception as e:
         step_errors.append(f"Test suggestions failed: {e}")
-        print(f"         ⚠ Test suggestions failed: {e}")
+        print(f"         [Warning] Test suggestions failed: {e}")
+
+    # critic refinement step
+    print("  [Critic] Refining and verifying findings (filtering false positives)...")
+    try:
+        refined_findings = critic.refine(diff_files, all_findings)
+        print(f"         Refined from {len(all_findings)} to {len(refined_findings)} findings")
+        all_findings = refined_findings
+    except Exception as e:
+        print(f"         [Warning] Critic step failed: {e}")
+
+    # generate non-technical changelog
+    print("  [Changelog] Generating product impact summary...")
+    changelog_text = ""
+    try:
+        changelog_text = changelog.generate(diff_files)
+        print("         Product impact changelog generated")
+    except Exception as e:
+        print(f"         [Warning] Changelog step failed: {e}")
 
     elapsed = time.time() - start_time
 
@@ -80,12 +98,13 @@ def run_review(diff_files: list[DiffFile], pr_metadata: PRMetadata) -> ReviewRes
         findings=all_findings,
         stats=stats,
         summary=summary,
+        changelog=changelog_text,
     )
 
-    print(f"\n  ✓ Review complete: {len(all_findings)} findings in {elapsed:.1f}s")
+    print(f"\n  [OK] Review complete: {len(all_findings)} findings in {elapsed:.1f}s")
 
     if step_errors:
-        print(f"  ⚠ {len(step_errors)} step(s) had errors")
+        print(f"  [Warning] {len(step_errors)} step(s) had errors")
 
     return review
 

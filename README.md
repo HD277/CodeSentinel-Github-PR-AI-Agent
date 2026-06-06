@@ -85,15 +85,70 @@ Ensure you have Python 3.9 or higher installed.
 
 ```
 ├── backend/
-│   ├── agent/            # Agent pipeline and steps (quality, bugs, security)
-│   ├── api.py            # FastAPI routes and static asset serving
+│   ├── agent/            # Agent pipeline and steps (quality, bugs, security, critic, changelog)
+│   ├── eval/             # Golden evaluation dataset and regression runner
+│   ├── api.py            # FastAPI routes, webhook receiver, and static asset serving
 │   ├── config.py         # App configuration settings
 │   ├── database.py       # SQLite database layer (aiosqlite)
 │   ├── diff_parser.py    # Git patch parser
-│   ├── github_client.py  # GitHub API client
+│   ├── github_client.py  # GitHub API client and review posting helper
 │   └── models.py         # Pydantic data schemas
 ├── data/                 # Auto-created directory for sqlite database files
 ├── frontend/             # Dashboard single-page application (HTML/CSS/JS)
 ├── main.py               # Application entrypoint
+├── render.yaml           # Deployment blueprint configuration file
 └── Dockerfile            # Container definition
 ```
+
+---
+
+## GitHub Webhook Integration (Active Code Review)
+
+CodeSentinel can run as an active CI/CD agent, listening to GitHub Pull Request webhook events. When a PR is created or updated, CodeSentinel processes the changes in the background and posts the inline review comments directly back to the GitHub PR.
+
+### Setup Instructions
+
+1. **Enable GitHub Token**:
+   Make sure you have a GitHub Personal Access Token (PAT) configured in your `.env` as `GITHUB_TOKEN`. The token needs `write` permission on the `pull requests` scope of the repository.
+
+2. **Add Webhook to GitHub Repository**:
+   - Go to your GitHub repository -> **Settings** -> **Webhooks** -> **Add webhook**.
+   - **Payload URL**: `https://your-domain.com/api/webhook/github` (or your local ngrok URL for testing).
+   - **Content type**: `application/json`.
+   - **Which events**: Select **Let me select individual events** and check **Pull requests**. Uncheck everything else.
+   - Click **Add webhook**.
+
+---
+
+## Automated Evaluation Suite & Regression Testing
+
+To verify the quality and precision of CodeSentinel's analysis and detect regressions before deployment, you can run the automated evaluation harness.
+
+The harness runs the review pipeline against a "golden dataset" of code changes containing known vulnerabilities, bugs, and quality concerns. It evaluates findings using LLM-as-a-judge for Precision and maps them to expectations for Recall.
+
+### Running Evaluations
+
+Ensure your environment variables are configured, then run:
+
+```bash
+python -m backend.eval.run_eval
+```
+
+On execution, the script:
+1. Reviews all test cases in `backend/eval/dataset.py`.
+2. Computes **Precision, Recall, JSON Success Rate, and Token/Latency metrics**.
+3. Compares metrics against `backend/eval/baseline.json`. If performance degrades (e.g. recall drops or JSON parsing errors occur), it exits with a non-zero code.
+4. Generates a Markdown report and saves a JSON trace of the run in `backend/eval/reports/`.
+
+---
+
+## Deployment to Production (Self-Hosting)
+
+CodeSentinel is fully dockerized and ready for single-click deployment to popular hosting platforms.
+
+### Deploying to Render
+1. Create an account on [Render](https://render.com).
+2. Click **New** -> **Blueprint**.
+3. Connect your fork/repository.
+4. Render will read `render.yaml` automatically. Define the `GEMINI_API_KEY` and `GITHUB_TOKEN` values in the environment variables screen.
+5. Deploy. The blueprint sets up a persistent SQLite volume mounted at `/app/data` to preserve your dashboard history between restarts.

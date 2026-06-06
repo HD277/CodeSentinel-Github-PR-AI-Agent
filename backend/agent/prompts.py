@@ -154,3 +154,18 @@ Top findings:
 {top_findings}
 
 Write a concise summary paragraph. Do not use markdown formatting. Just plain text."""
+
+
+CHANGELOG_PROMPT = """You are a technical product coordinator. Analyze the following code changes from a Pull Request and generate a non-technical changelog for stakeholders (product management, customer success, and operations).
+
+Your changelog must:
+1. Explain WHAT features/enhancements are added and WHY they matter in plain English.
+2. Highlight any fixed bugs or performance improvements in simple terms.
+3. Explicitly state the direct product or operational impact (e.g. "Allows automatic comment posting to GitHub", "Prevents database lockups under high load").
+4. Avoid technical jargon (e.g. don't explain loops, specific API libraries, or SQL queries unless explaining the high-level impact).
+5. Be structured with clean Markdown bullet points.
+
+Code changes to analyze:
+{diff_context}
+
+Respond with only the Markdown-formatted changelog."""

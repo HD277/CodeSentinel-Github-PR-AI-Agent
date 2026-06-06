@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-06-06T15:30:46.743663",
+  "summary": {
+    "cases_evaluated": 3,
+    "success_rate": 1.0,
+    "recall": 1.0,
+    "precision": 1.0,
+    "avg_latency_seconds": 38.28,
+    "avg_tokens": 6627.0,
+    "total_eval_time_seconds": 114.83
+  },
+  "details": [
+    {
+      "case_id": "case_1_sql_injection",
+      "description": "Critical SQL Injection vulnerability via string formatting",
+      "success": true,
+      "findings_count": 4,
+      "true_positives": 4,
+      "expected_count": 1,
+      "caught_count": 1,
+      "recall": 1.0,
+      "precision": 1.0,
+      "latency_seconds": 44.04
+    },
+    {
+      "case_id": "case_2_resource_leak",
+      "description": "Resource leak due to unclosed file descriptor",
+      "success": true,
+      "findings_count": 4,
+      "true_positives": 4,
+      "expected_count": 1,
+      "caught_count": 1,
+      "recall": 1.0,
+      "precision": 1.0,
+      "latency_seconds": 39.0
+    },
+    {
+      "case_id": "case_3_logic_off_by_one",
+      "description": "Off-by-one logic bug in range calculation or slice",
+      "success": true,
+      "findings_count": 3,
+      "true_positives": 3,
+      "expected_count": 1,
+      "caught_count": 1,
+      "recall": 1.0,
+      "precision": 1.0,
+      "latency_seconds": 31.79
+    }
+  ]
+}

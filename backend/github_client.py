@@ -99,3 +99,40 @@ async def fetch_pr_files(owner: str, repo: str, pr_number: int) -> list[dict]:
                 break
 
     return all_files
+
+
+async def get_latest_pr_commit_sha(owner: str, repo: str, pr_number: int) -> str:
+    """Fetch the latest commit SHA (head SHA) for a PR."""
+    url = f"{settings.GITHUB_API_BASE}/repos/{owner}/{repo}/pulls/{pr_number}"
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(url, headers=_get_headers())
+        response.raise_for_status()
+        data = response.json()
+        return data.get("head", {}).get("sha", "")
+
+
+async def post_pr_review(
+    owner: str,
+    repo: str,
+    pr_number: int,
+    commit_sha: str,
+    comments: list[dict],
+    body: str,
+    event: str = "COMMENT",
+) -> dict:
+    """Post a code review with comments on a PR."""
+    url = f"{settings.GITHUB_API_BASE}/repos/{owner}/{repo}/pulls/{pr_number}/reviews"
+    payload = {
+        "body": body,
+        "event": event,
+    }
+    if commit_sha:
+        payload["commit_id"] = commit_sha
+    if comments:
+        payload["comments"] = comments
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(url, headers=_get_headers(), json=payload)
+        response.raise_for_status()
+        return response.json()
+

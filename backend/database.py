@@ -39,6 +39,7 @@ async def init_db():
                 review_time_seconds REAL DEFAULT 0.0,
                 tokens_used INTEGER DEFAULT 0,
                 summary TEXT DEFAULT '',
+                changelog TEXT DEFAULT '',
                 findings_json TEXT DEFAULT '[]',
                 pr_metadata_json TEXT DEFAULT '{}',
                 stats_json TEXT DEFAULT '{}',
@@ -46,6 +47,13 @@ async def init_db():
             )
         """)
         await db.commit()
+
+        # Try to alter table to add changelog column in case db already existed
+        try:
+            await db.execute("ALTER TABLE reviews ADD COLUMN changelog TEXT DEFAULT ''")
+            await db.commit()
+        except Exception:
+            pass
 
 
 async def save_review(review: ReviewResponse) -> str:
@@ -63,8 +71,8 @@ async def save_review(review: ReviewResponse) -> str:
                 id, pr_url, pr_title, repo, pr_number, author,
                 total_findings, critical_count, warning_count, info_count, suggestion_count,
                 files_reviewed, review_time_seconds, tokens_used,
-                summary, findings_json, pr_metadata_json, stats_json, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                summary, changelog, findings_json, pr_metadata_json, stats_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             review_id,
             review.pr.url,
@@ -78,6 +86,7 @@ async def save_review(review: ReviewResponse) -> str:
             review.stats.review_time_seconds,
             review.stats.tokens_used,
             review.summary,
+            review.changelog,
             json.dumps([f.model_dump() for f in review.findings]),
             review.pr.model_dump_json(),
             review.stats.model_dump_json(),
@@ -102,12 +111,16 @@ async def get_review(review_id: str) -> ReviewResponse | None:
     pr = PRMetadata(**json.loads(row["pr_metadata_json"]))
     stats = ReviewStats(**json.loads(row["stats_json"]))
 
+    # Handle older records where changelog is missing
+    changelog_val = row["changelog"] if "changelog" in row.keys() else ""
+
     return ReviewResponse(
         id=row["id"],
         pr=pr,
         findings=findings,
         stats=stats,
         summary=row["summary"],
+        changelog=changelog_val,
         created_at=row["created_at"],
     )
 

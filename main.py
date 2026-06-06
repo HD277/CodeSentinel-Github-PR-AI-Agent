@@ -17,7 +17,7 @@ def check_env():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, val = line.split("=", 1)
-                os.environ.setdefault(key.strip(), val.strip())
+                os.environ[key.strip()] = val.strip()
 
     if not os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY").startswith("your_"):
         print("Error: GEMINI_API_KEY is not set or has placeholder value in .env.")

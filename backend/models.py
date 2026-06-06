@@ -75,6 +75,7 @@ class ReviewResponse(BaseModel):
     findings: list[Finding] = []
     stats: ReviewStats = ReviewStats()
     summary: str = ""
+    changelog: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     @property

@@ -129,6 +129,7 @@ function resetView() {
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('error-section').classList.add('hidden');
     document.getElementById('loading-section').classList.add('hidden');
+    document.getElementById('changelog-card').classList.add('hidden');
 
     document.getElementById('pr-url-input').value = '';
     document.getElementById('pr-url-input').focus();
@@ -159,6 +160,17 @@ function renderResults(review) {
 
     // Summary
     document.getElementById('summary-text').textContent = review.summary;
+
+    // Changelog
+    const changelogCard = document.getElementById('changelog-card');
+    const changelogText = document.getElementById('changelog-text');
+    if (review.changelog) {
+        changelogCard.classList.remove('hidden');
+        changelogText.textContent = review.changelog;
+    } else {
+        changelogCard.classList.add('hidden');
+        changelogText.textContent = '';
+    }
 
     // Severity counts
     const counts = { critical: 0, warning: 0, info: 0, suggestion: 0 };
