@@ -247,16 +247,40 @@ async def process_webhook_review(owner: str, repo: str, pr_number: int, pr_url: 
             if review.critical_count > 0:
                 event_type = "REQUEST_CHANGES"
                 
-            await post_pr_review(
-                owner=owner,
-                repo=repo,
-                pr_number=pr_number,
-                commit_sha=commit_sha,
-                comments=comments,
-                body=summary_body,
-                event=event_type
-            )
-            print(f"Posted review and {len(comments)} inline comments on {owner}/{repo}#{pr_number}")
+            import httpx
+            try:
+                await post_pr_review(
+                    owner=owner,
+                    repo=repo,
+                    pr_number=pr_number,
+                    commit_sha=commit_sha,
+                    comments=comments,
+                    body=summary_body,
+                    event=event_type
+                )
+                print(f"Posted review and {len(comments)} inline comments on {owner}/{repo}#{pr_number}")
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 422:
+                    print("Inline comments rejected (422). Falling back to single summary review comment.")
+                    # Re-format body to include all findings inside the main body text
+                    fallback_body = summary_body
+                    if comments:
+                        fallback_body += "\n\n### 🔍 Line-by-Line Findings\n"
+                        for c in comments:
+                            fallback_body += f"\n* **{c['path']}:{c['line']}**\n{c['body']}\n"
+                    
+                    await post_pr_review(
+                        owner=owner,
+                        repo=repo,
+                        pr_number=pr_number,
+                        commit_sha=commit_sha,
+                        comments=[], # No inline comments
+                        body=fallback_body,
+                        event=event_type
+                    )
+                    print(f"Posted fallback summary review comment on {owner}/{repo}#{pr_number}")
+                else:
+                    raise e
         else:
             print("GITHUB_TOKEN not configured; skipping comment posting to GitHub.")
             
